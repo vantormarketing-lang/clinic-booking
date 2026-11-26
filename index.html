@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حجز موعد</title>
+<style>
+:root{--p:#0ea5a4;--bg:#f8fafc;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#e2e8f0}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--card:#131c2e;--tx:#e5e7eb;--mut:#94a3b8;--bd:#24304a}}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--p);color:#fff;padding:28px 16px;text-align:center}
+header h1{margin:0 0 6px;font-size:1.6rem}
+header p{margin:0;opacity:.95}
+main{max-width:640px;margin:0 auto;padding:16px}
+section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{margin:0 0 12px;font-size:1.05rem}
+.grid{display:flex;flex-wrap:wrap;gap:8px}
+button,input,select{font:inherit}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 14px;cursor:pointer}
+.chip.on{background:var(--p);border-color:var(--p);color:#fff}
+.doc{flex:1 1 100%;text-align:right}
+.doc small{display:block;color:var(--mut)}
+.doc.on small{color:#e6fffe}
+input,select{width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);margin-bottom:10px}
+.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--p);color:#fff;font-weight:700;cursor:pointer}
+.go:disabled{opacity:.5}
+.msg{padding:12px;border-radius:10px;margin-top:10px}
+.err{background:#fee2e2;color:#991b1b}
+.ok{background:#dcfce7;color:#166534}
+.hide{display:none}
+.mut{color:var(--mut)}
+</style>
+</head>
+<body>
+<header><h1 id="cname">...</h1><p id="cwelcome"></p></header>
+<main>
+  <section><h2>١. اختار الدكتور</h2><div id="docs" class="grid"></div></section>
+  <section id="s-day" class="hide"><h2>٢. اختار اليوم</h2><div id="days" class="grid"></div></section>
+  <section id="s-slot" class="hide"><h2>٣. اختار الميعاد</h2><div id="slots" class="grid"></div></section>
+  <section id="s-form" class="hide">
+    <h2>٤. بياناتك</h2>
+    <input id="name" placeholder="الاسم بالكامل" autocomplete="name">
+    <input id="phone" placeholder="رقم الموبايل (01xxxxxxxxx)" inputmode="numeric" autocomplete="tel">
+    <select id="vtype">
+      <option value="checkup">كشف</option>
+      <option value="consultation">استشارة</option>
+      <option value="followup">إعادة</option>
+    </select>
+    <button id="book" class="go">تأكيد الحجز</button>
+    <div id="msg"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://hcxoysslyfsktnrshoaw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GS7BQDm2thndbsYv-P5Q4w_SgCZVlV4";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: "clinic" } });
+const slug = new URLSearchParams(location.search).get("c") || "demo-clinic";
+const $ = id => document.getElementById(id);
+let clinic, doctors = [], schedules = [], doctor, day, slot;
+
+const fmtDay = d => d.toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" });
+const fmtTime = d => d.toLocaleTimeString("ar-EG", { hour: "numeric", minute: "2-digit" });
+
+function btn(text, cls, onclick) {
+  const b = document.createElement("button");
+  b.className = cls; b.textContent = text; b.onclick = onclick;
+  return b;
+}
+function showMsg(text, kind) {
+  const m = $("msg"); m.textContent = text; m.className = "msg " + kind;
+}
+function mark(container, el) {
+  container.querySelectorAll(".on").forEach(x => x.classList.remove("on"));
+  el.classList.add("on");
+}
+
+async function init() {
+  const { data, error } = await sb.from("clinics")
+    .select("*, clinic_branding(*)").eq("slug", slug).single();
+  if (error || !data) { $("cname").textContent = "العيادة غير موجودة"; return; }
+  clinic = data;
+  const b = [].concat(clinic.clinic_branding || [])[0] || {};
+  if (b.primary_color) document.documentElement.style.setProperty("--p", b.primary_color);
+  document.title = clinic.name;
+  $("cname").textContent = clinic.name;
+  $("cwelcome").textContent = b.welcome_message || "";
+
+  const d = await sb.from("doctors").select("*").eq("clinic_id", clinic.id).order("name");
+  doctors = d.data || [];
+  const s = await sb.from("schedules").select("*").in("doctor_id", doctors.map(x => x.id));
+  schedules = s.data || [];
+
+  const box = $("docs");
+  doctors.forEach(doc => {
+    const el = btn("", "chip doc", () => { mark(box, el); pickDoctor(doc); });
+    el.append(doc.name);
+    const sm = document.createElement("small");
+    sm.textContent = (doc.specialty || "") + (doc.fee ? " · الكشف " + doc.fee + " جنيه" : "");
+    el.append(sm);
+    box.append(el);
+  });
+}
+
+function pickDoctor(doc) {
+  doctor = doc; day = null; slot = null;
+  $("s-slot").classList.add("hide"); $("s-form").classList.add("hide");
+  const mine = schedules.filter(s => s.doctor_id === doc.id);
+  const box = $("days"); box.innerHTML = "";
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+    if (!mine.some(s => s.weekday === d.getDay())) continue;
+    const el = btn(fmtDay(d), "chip", () => { mark(box, el); pickDay(d, mine); });
+    box.append(el);
+  }
+  if (!box.children.length) { box.textContent = "مفيش مواعيد متاحة للدكتور ده حاليًا"; box.className = "mut"; }
+  else box.className = "grid";
+  $("s-day").classList.remove("hide");
+}
+
+async function pickDay(d, mine) {
+  day = d; slot = null; $("s-form").classList.add("hide");
+  const box = $("slots"); box.className = "mut"; box.textContent = "جاري تحميل المواعيد...";
+  $("s-slot").classList.remove("hide");
+
+  const from = new Date(d), to = new Date(d); to.setDate(to.getDate() + 1);
+  const { data: busy } = await sb.rpc("busy_slots", {
+    p_doctor: doctor.id, p_from: from.toISOString(), p_to: to.toISOString()
+  });
+  const busyList = (busy || []).map(b => [new Date(b.starts_at), new Date(b.ends_at)]);
+  const step = doctor.slot_minutes * 60000;
+  const now = new Date();
+  const free = [];
+
+  mine.filter(s => s.weekday === d.getDay()).forEach(s => {
+    const [sh, sm] = s.start_time.split(":").map(Number);
+    const [eh, em] = s.end_time.split(":").map(Number);
+    const start = new Date(d); start.setHours(sh, sm, 0, 0);
+    const end = new Date(d); end.setHours(eh, em, 0, 0);
+    for (let t = start.getTime(); t + step <= end.getTime(); t += step) {
+      const a = new Date(t), b = new Date(t + step);
+      const taken = busyList.some(([bs, be]) => a < be && b > bs);
+      if (!taken && a > now) free.push(a);
+    }
+  });
+
+  box.innerHTML = "";
+  if (!free.length) { box.textContent = "اليوم ده مكتمل، جرّب يوم تاني"; return; }
+  box.className = "grid";
+  free.sort((x, y) => x - y).forEach(a => {
+    const el = btn(fmtTime(a), "chip", () => { mark(box, el); slot = a; $("s-form").classList.remove("hide"); $("msg").className = ""; $("msg").textContent = ""; });
+    box.append(el);
+  });
+}
+
+$("book").onclick = async () => {
+  const name = $("name").value.trim();
+  const phone = $("phone").value.replace(/\s|-/g, "");
+  if (name.length < 2) return showMsg("اكتب اسمك بالكامل", "err");
+  if (!/^01[0-9]{9}$/.test(phone)) return showMsg("رقم الموبايل لازم يكون 11 رقم ويبدأ بـ 01", "err");
+  $("book").disabled = true;
+
+  const { data, error } = await sb.rpc("book_appointment", {
+    p_clinic: clinic.id, p_doctor: doctor.id, p_name: name, p_phone: phone,
+    p_starts: slot.toISOString(), p_visit_type: $("vtype").value
+  });
+  $("book").disabled = false;
+
+  if (error) {
+    if (error.code === "23P01") {
+      showMsg("الميعاد ده اتحجز من شوية، اختار ميعاد تاني", "err");
+      pickDay(day, schedules.filter(s => s.doctor_id === doctor.id));
+    } else showMsg("حصلت مشكلة، حاول تاني", "err");
+    return;
+  }
+  showMsg("تم الحجز مع " + doctor.name + " يوم " + fmtDay(slot) + " الساعة " + fmtTime(slot) + ". احتفظ بالصفحة دي كإثبات.", "ok");
+  $("s-form").querySelectorAll("input,select").forEach(x => x.disabled = true);
+  $("book").classList.add("hide");
+}
+
+init();
+</script>
+</body>
+</html>
