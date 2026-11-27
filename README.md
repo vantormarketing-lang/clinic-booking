@@ -10,7 +10,7 @@ Clinic Booking is an Arabic appointment-booking web app with a Node.js API backe
 - Server-side schedule/time-off validation and future-time checks
 - Staff API authenticated with Neon Auth JWT/JWKS and staff clinic membership
 - Appointment list/status updates and doctor activation controls
-- Basic public endpoint rate limiting, request validation, helmet, strict CORS
+- Basic public endpoint rate limiting, request validation, Helmet, explicit CORS allowlist, Render proxy IP handling
 - Public booking UI at `public/index.html`
 - CI workflow runs TypeScript build and tests
 
@@ -24,10 +24,10 @@ Clinic Booking is an Arabic appointment-booking web app with a Node.js API backe
 ## Deployment (Render)
 The repository includes `render.yaml` and `Dockerfile`. To deploy, connect the repository/branch to Render as a Blueprint and provide the environment values above in Render's dashboard. Never paste connection strings or auth secrets into GitHub. Use the isolated test branch during setup. Health endpoint: `/health/db`; booking page: `/`.
 
-## Not production-ready yet
+## Remaining release blockers
 - Staff login UI/Neon Auth browser sign-in and staff onboarding/role management are not implemented.
 - Admin interface is API-only; no visual admin console yet.
-- Automated API integration tests against a disposable database are not complete.
+- Automated API integration tests against a disposable database are not complete; current tests cover input validation and a static security regression.
 - Deployment has not been performed and the deployed health checks are not verified.
 - Timezone-specific schedule rendering and end-to-end acceptance need a final pass.
 - Before production: configure backup/restore, monitoring, privacy retention, and verify all access policies/roles.
