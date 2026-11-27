@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: clinic-booking-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/db
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: NEON_AUTH_ISSUER
+        sync: false
+      - key: NEON_AUTH_AUDIENCE
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DB_POOL_MAX
+        value: "5"
