@@ -7,6 +7,8 @@ import { api } from "./routes.js";
 import { pool } from "./db.js";
 const app=express();
 app.disable("x-powered-by");
+// Render terminates TLS and forwards the client IP in one trusted proxy hop.
+app.set("trust proxy",1);
 app.use(helmet({contentSecurityPolicy:false}));
 const origins=(process.env.CORS_ORIGIN||"").split(",").map(x=>x.trim()).filter(Boolean);
 app.use(cors({origin(o,cb){if(!o||origins.includes(o))return cb(null,true);cb(new Error("origin denied"));},methods:["GET","POST","PATCH"],allowedHeaders:["Content-Type","Authorization"]}));
