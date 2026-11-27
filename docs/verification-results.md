@@ -18,8 +18,8 @@ Reviewed the isolated Neon branch `clinic-db-test-clean` (`br-broad-fog-bg8ujbrx
 
 ## Automated test and build status
 - Test file contains input-validation checks plus a static regression check.
-- CI workflow is configured to run npm install, TypeScript build, and npm tests on branch push/PR and manual dispatch.
-- **Not verified in this environment:** CI run completion/results, local npm build, test execution, live HTTP/API integration, browser flow, or deployment health.
+- GitHub Actions run **46081797662** completed successfully for commit `311022a4786f32c6a0415ba4c70a57a3fc9ca772`: dependency install, TypeScript build, and tests all passed.
+- This CI run validates compile and tests only; live HTTP/API integration, browser flow, and deployment health remain unverified.
 
 ## Release blockers
 - No staff login UI or onboarding/role-management UI.
