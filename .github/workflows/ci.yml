@@ -1,6 +1,7 @@
 name: Clinic Booking API CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - neon-backend-bootstrap
