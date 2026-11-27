@@ -1,25 +1,33 @@
 # Clinic Booking
 
-Clinic booking platform: static client + Express/TypeScript API + PostgreSQL (Neon).
+Clinic Booking is an Arabic appointment-booking web app with a Node.js API backed by Neon Postgres. Work is being developed on `neon-backend-bootstrap`; production data and the default branch are not changed.
 
-## Status
-This branch is a work-in-progress integration branch. The API currently provides health endpoints only; appointment booking, staff authentication/authorization, management endpoints, frontend API integration, and automated DB tests are not complete or validated.
+## Current features in this branch
+- Public clinic profile and active doctors
+- Weekly schedule list and appointment/time-off availability
+- Patient booking endpoint; creates/updates patient by clinic+phone
+- Database exclusion constraint handles simultaneous overlapping bookings
+- Server-side schedule/time-off validation and future-time checks
+- Staff API authenticated with Neon Auth JWT/JWKS and staff clinic membership
+- Appointment list/status updates and doctor activation controls
+- Basic public endpoint rate limiting, request validation, helmet, strict CORS
+- Public booking UI at `public/index.html`
+- CI workflow runs TypeScript build and tests
 
-## Run locally
-1. Copy `.env.example` to `.env`.
-2. Set `DATABASE_URL` to a Neon connection string (server-only; never expose it to the browser).
-3. Set `CORS_ORIGIN` to the exact frontend origin.
-4. Run `npm install`, then `npm run dev`.
-5. Check `GET /health` and `GET /health/db`.
+## Local development
+1. Copy `.env.example` to `.env` and set a test-branch connection string.
+2. Set `NEON_AUTH_JWKS_URL`, `NEON_AUTH_ISSUER`, and `NEON_AUTH_AUDIENCE` from the Neon Auth configuration for the deployment branch.
+3. Set `CORS_ORIGIN` to the public frontend origin.
+4. `npm install`
+5. `npm run dev`
 
-## Database migrations
-Review and apply migration files manually only after testing against a separate Neon branch. Never run unreviewed migrations against production.
+## Deployment (Render)
+The repository includes `render.yaml` and `Dockerfile`. To deploy, connect the repository/branch to Render as a Blueprint and provide the environment values above in Render's dashboard. Never paste connection strings or auth secrets into GitHub. Use the isolated test branch during setup. Health endpoint: `/health/db`; booking page: `/`.
 
-## Security checklist before deployment
-- JWT verification and clinic-scoped staff roles (owner, doctor, receptionist)
-- server-only database connection with least-privilege role
-- RLS policies and permission tests
-- booking transaction + overlap constraint handling
-- rate limits, input validation, audit logs, and secret rotation
-- automated build/test and deploy health checks
-- frontend moved from legacy direct Supabase access to API calls
+## Not production-ready yet
+- Staff login UI/Neon Auth browser sign-in and staff onboarding/role management are not implemented.
+- Admin interface is API-only; no visual admin console yet.
+- Automated API integration tests against a disposable database are not complete.
+- Deployment has not been performed and the deployed health checks are not verified.
+- Timezone-specific schedule rendering and end-to-end acceptance need a final pass.
+- Before production: configure backup/restore, monitoring, privacy retention, and verify all access policies/roles.
