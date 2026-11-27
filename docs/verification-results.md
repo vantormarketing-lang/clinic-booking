@@ -1,22 +1,31 @@
 # Verification Record (2026-11-28)
 
 ## Scope
-Performed on isolated Neon branch `clinic-db-test-clean` (`br-broad-fog-bg8ujbrx`) created from production branch `br-empty-band-bg7oziv0`. No changes applied to production.
+Reviewed the isolated Neon branch `clinic-db-test-clean` (`br-broad-fog-bg8ujbrx`) only. Production/default branch `br-empty-band-bg7oziv0` was not changed.
 
-## Migration
-Applied additive indexes from `migrations/001_booking_indexes.sql`. All seven indexes were queried afterward and confirmed present.
+## Database evidence
+- Schema reviewed for `clinics`, `doctors`, `patients`, `appointments`, `schedules`, `time_off`, `staff`, and `clinic_branding`.
+- Verified clinic record `demo-clinic`, 2 doctors, 9 schedule rows, and 0 persisted appointments before current verification.
+- Additive indexes in `migrations/001_booking_indexes.sql` were previously applied and confirmed.
+- The appointment exclusion constraint `no_double_booking` is present.
+- Prior synthetic test: a 20-minute appointment and an immediately adjacent appointment were accepted; an overlapping appointment was rejected with SQLSTATE `23P01`; temporary patient/appointments were cleaned up.
 
-## Database checks
-- Confirmed the appointments `no_double_booking` exclusion constraint exists on the test branch.
-- Inserted synthetic test patient and a 20-minute appointment.
-- Inserted a second appointment immediately adjacent to the first; accepted.
-- Attempted an overlapping appointment; PostgreSQL rejected it with SQLSTATE `23P01` and the `no_double_booking` constraint.
-- Removed both test appointments and the synthetic patient; cleanup verified with zero matching rows.
+## Code review and fixes in this pass
+- Checked booking insert columns and patient conflict key against the actual test-branch schema.
+- Replaced dynamic `innerHTML` rendering of doctor/day/slot labels with text-node rendering; added a regression test for the booking page.
+- Configured Express to trust one proxy hop for Render, so rate limiting can use the forwarded client IP.
+- Neon Auth Better Auth integration exists on the test branch. Its JWKS URL and base URL were read from Neon; issuer/audience settings still require verification with a real token/client flow.
 
-## Not verified
-- Booking API: not implemented/tested.
-- Authentication/JWT: not implemented/tested.
-- Staff roles and clinic-level authorization: not implemented/tested.
-- RLS policy behavior: no policies exist in this branch; security configuration is incomplete.
-- Frontend-to-API migration: not implemented/tested.
-- Full automated test suite, npm build, deployment, and end-to-end test: not run.
+## Automated test and build status
+- Test file contains input-validation checks plus a static regression check.
+- CI workflow is configured to run npm install, TypeScript build, and npm tests on branch push/PR and manual dispatch.
+- **Not verified in this environment:** CI run completion/results, local npm build, test execution, live HTTP/API integration, browser flow, or deployment health.
+
+## Release blockers
+- No staff login UI or onboarding/role-management UI.
+- Admin tools are API endpoints only; no visual dashboard.
+- No real JWT was obtained to verify issuer/audience/claims and staff middleware end-to-end.
+- No disposable-database API integration test suite, idempotency support, or audit trail for status changes.
+- Production access policies/RLS are not configured and must not be enabled without correct policies.
+- Render service has not been created/deployed and required environment secrets have not been configured.
+- No public live URL or end-to-end smoke test exists.
