@@ -7,7 +7,7 @@
 <section id="formSec" class="hidden"><h2>٤. بيانات الحجز</h2><input id="name" placeholder="الاسم بالكامل"><input id="phone" inputmode="numeric" placeholder="رقم الموبايل 01xxxxxxxxx"><select id="type"><option value="checkup">كشف</option><option value="consultation">استشارة</option><option value="followup">إعادة</option></select><button class="cta" id="book">تأكيد الحجز</button><div id="msg"></div></section>
 <p class="muted">حجز مواعيد إلكتروني</p></main><script>
 const slug=new URLSearchParams(location.search).get("c")||"demo-clinic", $=id=>document.getElementById(id);let clinic,doctors=[],sched=[],doc,day,slot;
-const daytxt=d=>d.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}),timtxt=d=>d.toLocaleTimeString("ar-EG",{hour:"numeric",minute:"2-digit"});
+const daytxt=d=>d.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}),timtxt=d=>d.toLocaleTimeString("ar-EG",{hour:"numeric",minute:"2-digit"}),dateKey=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
 async function api(path,opts){let r=await fetch("/api"+path,opts);let j=await r.json();if(!r.ok)throw Object.assign(new Error(j.error||"error"),{status:r.status});return j}
 function msg(t,k){$("msg").className="msg "+k;$("msg").textContent=t}
 function button(box,label,sub,fn){let b=document.createElement("button");b.className="choice";b.innerHTML=label+(sub?'<small>'+sub+'</small>':"");b.onclick=()=>{box.querySelectorAll(".active").forEach(x=>x.classList.remove("active"));b.classList.add("active");fn()};box.append(b)}
