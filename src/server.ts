@@ -13,6 +13,7 @@ app.use(cors({origin(o,cb){if(!o||origins.includes(o))return cb(null,true);cb(ne
 app.use(express.json({limit:"30kb"}));
 app.use("/api/public",rateLimit({windowMs:60000,max:60,standardHeaders:true,legacyHeaders:false}));
 app.use("/api",api);
+app.use(express.static("public"));
 app.get("/health",(_q,r)=>r.json({ok:true}));
 app.get("/health/db",async(_q,r)=>{try{await pool.query("SELECT 1");r.json({ok:true,database:true});}catch{r.status(503).json({ok:false,database:false});}});
 app.use((e:any,_q:any,r:any,_n:any)=>{console.error("Request error",e?.message);r.status(500).json({error:"internal_error"});});
